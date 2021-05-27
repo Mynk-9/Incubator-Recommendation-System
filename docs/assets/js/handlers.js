@@ -6,12 +6,24 @@
 // ]
 
 const getRecommendations = () => {
-    let _cats = document.querySelectorAll('label[for="chips-input-cat-ind"] > span');
+    let _cats = document.querySelectorAll('label[for="chips-input-cat-ind"] > span.valid-chip-data');
     let cats = Array.prototype.slice.call(_cats).map(ele => {
         return ele.innerText.slice(0, ele.innerText.length - 1);
     });
-    console.log(cats);
-    let profile = 'https://angel.co/company/' + document.getElementById('basic-url').textContent;
+    let profile = 'https://www.linkedin.com/company/' + document.getElementById('basic-url').value;
+    if (profile === 'https://www.linkedin.com/company/') {
+        alert('Please enter company profile link.');
+        return;
+    } else if (cats.length === 0) {
+        alert('Please select at least one category.');
+        return;
+    } else if (document.querySelectorAll('label[for="chips-input-cat-ind"] > span.invalid-chip-data').length > 0) {
+        alert('Please remove invalid categories.')
+        return;
+    } else if (document.querySelectorAll('label[for="chips-input-loc"] > span.invalid-chip-data').length > 0) {
+        alert('Please remove invalid locations.')
+        return;
+    }
 
     $.ajax({
         url: 'https://api.inqb8r.tech/getResult/',
@@ -29,7 +41,7 @@ const getRecommendations = () => {
             },
             200: (res) => {
                 const incubators = res.incubators;
-                console.log(res);
+                // console.log(res);
                 let incubatorList = [];
                 // console.log(incubatorList);
                 for (const inc in incubators) {
@@ -46,7 +58,7 @@ const getRecommendations = () => {
                     incubatorList.push(thisIncubator);
                     // { 'name': 'name1', 'sf_score': 10, 'pa_score': 20, 't_score': 30, 'ff_score': 40, 'link1': 'link1', 'link2': 'link2', 'city': 'city1' },
                 }
-                generateCustomCards(incubatorList);
+                generateCustomCards(incubatorList.splice(0, 3));
             },
             500: () => {
                 alert('error');
@@ -57,16 +69,10 @@ const getRecommendations = () => {
 };
 
 const generateCustomCards = (params) => {
-    // uncomment for debug only
-    // params = [
-    //     { 'name': 'name1', 'sf_score': 10, 'pa_score': 20, 't_score': 30, 'ff_score': 40, 'link1': 'link1', 'link2': 'link2', 'city': 'city1' },
-    //     { 'name': 'name2', 'sf_score': 10, 'pa_score': 20, 't_score': 30, 'ff_score': 40, 'link1': 'link1', 'link2': 'link2', 'city': 'city2' },
-    //     { 'name': 'name3', 'sf_score': 10, 'pa_score': 20, 't_score': 30, 'ff_score': 40, 'link1': 'link1', 'link2': 'link2', 'city': 'city3' },
-    // ];
-    let modalBody = document.querySelector("div.modal-dialog[role=document] div.modal-body div.custom-card-wrapper");
+    let modalBody = document.querySelector('div.modal-dialog[role=document] div.modal-body div.custom-card-wrapper');
     let template = document.querySelector('#custom-card-template');
 
-    let cities = new Set();
+    let _cities = new Set();
 
     for (const incubator of params) {
         let clone = template.content.cloneNode(true);
@@ -74,19 +80,22 @@ const generateCustomCards = (params) => {
         let title = clone.querySelector('.custom-card-header');
         let arrow = clone.querySelector('img');
 
-        title.innerHTML = `<a href="${incubator.link1}">${incubator.name}</a>`;
+        title.innerHTML = `<a href='${incubator.link1}' target="_blank">${incubator.name}</a>`;
         dataFields[0].innerHTML = incubator.sf_score;
         dataFields[2].innerHTML = incubator.pa_score;
         dataFields[4].innerHTML = incubator.t_score;
         dataFields[6].innerHTML = incubator.ff_score;
-        arrow.addEventListener('click', () => { location.href = incubator.link2 });
+        arrow.addEventListener('click', () => {
+            window.open(incubator.link2, '_blank');
+        });
 
         modalBody.appendChild(clone);
-        modalBody.lastElementChild.setAttribute("city", incubator.city);
-        cities.add(incubator.city);
+        modalBody.lastElementChild.setAttribute('city', incubator.city);
+        _cities.add(incubator.city);
     }
 
     let locationFilter = document.getElementById('location-filter');
+    let cities = [..._cities].sort();
     cities.forEach(city => {
         let location = document.createElement('option');
         location.value = city;
@@ -97,7 +106,7 @@ const generateCustomCards = (params) => {
 
 const handleModalClose = () => {
     $('#perfectIncubatorModal').on('hidden.bs.modal', (e) =>
-        $("#perfectIncubatorModal div.custom-card").each((index, element) => element.remove())
+        $('#perfectIncubatorModal div.custom-card').each((index, element) => element.remove())
     );
 };
 handleModalClose();
@@ -105,42 +114,66 @@ handleModalClose();
 const cityFilterChange = (selectElement) => {
     const city = selectElement.value;
     // console.log(city);
-    let cards = document.querySelector("div.modal-dialog[role=document] div.modal-body div.custom-card-wrapper").children;
+    let cards = document.querySelector('div.modal-dialog[role=document] div.modal-body div.custom-card-wrapper').children;
 
-    if (city === "Location Filter") {
+    if (city === 'Location Filter') {
         for (const card of cards)
-            card.style.display = "";
+            card.style.display = '';
         return;
     }
 
     for (const card of cards) {
         if (card.getAttribute('city') !== city)
-            card.style.display = "none";
+            card.style.display = 'none';
         else
-            card.style.display = "";
+            card.style.display = '';
     }
 };
 
-function addChips(e, validate = false) {
+function addChips(e, categoryLocation = 'category') {
     let val = e.value;
-    if (val.slice(-1) === " " && val.trim().length > 0) {
-        // console.log(val);
-        let ele = e.parentElement;
-        let tb = ele.querySelector('input');
-        let chip = document.createElement('span');
-        let cross = document.createElement('a');
-        cross.onclick = (e) => {
-            e.target.parentElement.remove();
-        };
+    if (val === '') return;
+    // if (val.slice(-1) === ' ' && val.trim().length > 0) {
+    // console.log(val);
+    let ele = e.parentElement;
+    let tb = ele.querySelector('input');
+    let chip = document.createElement('span');
+    let cross = document.createElement('a');
+    cross.onclick = (e) => {
+        e.target.parentElement.remove();
+    };
 
-        chip.innerHTML = val.trim();
-        cross.innerHTML = 'x';
-        chip.appendChild(cross);
-        if (validate)
-            chip.style.backgroundColor = getValidatedColor(val.trim());
+    chip.innerHTML = val.trim();
+    cross.innerHTML = 'x';
+    chip.appendChild(cross);
+    if (categoryLocation === 'category')
+        chip.classList.add(getCategoriesValidatedColor(val.trim()))
+    else
+        chip.classList.add(getLocationValidatedColor(val.trim()))
 
-        ele.insertBefore(chip, tb);
+    ele.insertBefore(chip, tb);
 
-        e.value = '';
-    }
+    e.value = '';
+    // }
 }
+document.getElementById('chips-input-cat-ind').addEventListener('keydown', (e) => {
+    if (e.key === 13 || e.keyCode === 13) {
+        e.preventDefault();
+        addChips(e.target, 'category');
+    }
+});
+document.getElementById('chips-input-loc').addEventListener('keydown', (e) => {
+    if (e.key === 13 || e.keyCode === 13) {
+        e.preventDefault();
+        addChips(e.target, 'location');
+    }
+});
+document.getElementById('chips-input-cat-ind').addEventListener('change', (e) => {
+    e.preventDefault();
+    addChips(e.target, 'category');
+});
+document.getElementById('chips-input-loc').addEventListener('change', (e) => {
+    e.preventDefault();
+    addChips(e.target, 'location');
+});
+// document.getElementById('chips-input-cat-ind').onchange = (e) => console.log(e);

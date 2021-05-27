@@ -1611,8 +1611,14 @@ div.jumbo-heading {
 .chips > span {
   display: inline-block;
   border-radius: 1rem;
-  background-color: lightblue;
+  background-color: grey;
   padding: 0.3rem;
+}
+.chips > span.valid-chip-data {
+  background-color: lightblue;
+}
+.chips > span.invalid-chip-data {
+  background-color: red;
 }
 .chips > span + span {
   margin-left: 0.3rem;

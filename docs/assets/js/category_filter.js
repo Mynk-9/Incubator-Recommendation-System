@@ -1,4 +1,4 @@
-var validator_categories = new Set([
+var validator_categories = [...(new Set([
     "3d printing",
     "Accounting",
     "AdTech",
@@ -204,11 +204,25 @@ var validator_categories = new Set([
     "Web Development",
     "Weddings",
     "Wireless"
-]);
+]))];
 
-const getValidatedColor = (val) => {
-    if (validator_categories.has(String(val)))
-        return 'lightblue';
-    else
-        return 'red';
+const getCategoriesValidatedColor = (val = "") => {
+    val = String(val).toLowerCase();
+    for (const i of validator_categories) {
+        if (val.localeCompare(i.toLowerCase()) === 0)
+            return 'valid-chip-data';
+    }
+    return 'invalid-chip-data';
 };
+
+function categorySetter() {
+    let dl = document.createElement('datalist');
+    dl.setAttribute('id', 'category-list');
+    validator_categories.forEach(val => {
+        let ele = document.createElement('option');
+        ele.setAttribute('value', val);
+        dl.append(ele);
+    });
+    document.body.append(dl);
+}
+categorySetter();
